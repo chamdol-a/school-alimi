@@ -397,7 +397,7 @@
       const pick = () => { if (!info) return; S.sido = info.sd.name; S.sgg = ''; refresh(); };
       p.addEventListener('click', pick);
       p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-      p.addEventListener('mousemove', e => tip(e, info ? `${info.sd.name}\n${M.label}: ${isNaN(info.v) ? '해당 없음' : fmt(info.v) + M.unit} · ${isNaN(info.n) ? 0 : fmt(info.n)}곳\n누르면 확대` : id));
+      p.addEventListener('mousemove', e => tip(e, info ? `${info.sd.name}\n${M.label}: ${isNaN(info.v) ? '해당 없음' : fmt(info.v) + M.unit}${S.metric === 'schools' ? '' : ` · ${isNaN(info.n) ? 0 : fmt(info.n)}곳`}\n누르면 확대` : id));
       p.addEventListener('mouseleave', () => tip(null));
       gPaths.append(p);
     });
@@ -432,7 +432,7 @@
       p.style.fill = isNaN(v) ? 'var(--surface-2)' : rampColor(cl.cls(v));
       p.addEventListener('click', () => pickUnit(u.n));
       p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickUnit(u.n); } });
-      p.addEventListener('mousemove', e => tip(e, `${u.n}\n${M.label}: ${isNaN(v) ? '해당 없음' : fmt(v) + M.unit} · ${isNaN(n) ? 0 : fmt(n)}곳`));
+      p.addEventListener('mousemove', e => tip(e, `${u.n}\n${M.label}: ${isNaN(v) ? '해당 없음' : fmt(v) + M.unit}${S.metric === 'schools' ? '' : ` · ${isNaN(n) ? 0 : fmt(n)}곳`}`));
       p.addEventListener('mouseleave', () => tip(null));
       gP.append(p);
     });
@@ -476,8 +476,18 @@
     return h('div', { class: 'side-stack' }, stack);
   }
   function kpi(v, l, cls) { return h('div', { class: 'k-card kpi' }, h('div', { class: 'v' + (cls ? ' ' + cls : '') }, v), h('div', { class: 'l' }, l)); }
+  // 말풍선: 마우스에서는 따라다니고, 손가락(터치)·스크롤·다른 곳 누르기·화면 바뀜에는 바로 사라진다
+  let tipTouch = false, tipTimer = 0;
+  const hideTip = () => { clearTimeout(tipTimer); const t = document.getElementById('tip'); if (t) t.hidden = true; };
+  document.addEventListener('pointerdown', e => { tipTouch = e.pointerType !== 'mouse'; hideTip(); }, true);
+  document.addEventListener('touchstart', () => { tipTouch = true; hideTip(); }, { capture: true, passive: true });
+  window.addEventListener('scroll', hideTip, { capture: true, passive: true });
+  window.addEventListener('resize', hideTip); window.addEventListener('blur', hideTip);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTip(); });
+  document.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') tipTouch = false; }, { passive: true });
   function tip(e, text) {
-    const t = $('#tip'); if (!e) { t.hidden = true; return; }
+    const t = $('#tip'); if (!e) { hideTip(); return; }
+    if (tipTouch || (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents)) { hideTip(); return; }   // 터치로 생긴 가짜 마우스 이동은 무시
     t.textContent = ''; text.split('\n').forEach((line, i) => { if (i) t.append(h('br')); t.append(line); });
     t.hidden = false;
     const x = Math.min(e.clientX + 14, innerWidth - t.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - t.offsetHeight - 8);
@@ -929,7 +939,7 @@
     document.querySelectorAll('.view').forEach(x => x.hidden = x.id !== 'view-' + S.view);
     $('.shell').classList.toggle('no-panel', S.view === 'students');
     $('#sampleBadge').hidden = !(demoOn() && (S.view === 'assess' || S.view === 'curri'));
-    renderPanel(); RENDER[S.view](); writeHash();
+    hideTip(); renderPanel(); RENDER[S.view](); writeHash();
     $('#qClear').hidden = !S.q;
   }
 

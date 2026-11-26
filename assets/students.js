@@ -5,7 +5,7 @@ window.Students = (function () {
   function load() {
     if (window.STUDENTS_DATA) return Promise.resolve();
     if (!loading) loading = new Promise((ok, fail) => {
-      const s = document.createElement('script'); s.src = 'assets/students-data.js';
+      const s = document.createElement('script'); s.src = 'assets/students-data.js?v=1126-6';
       s.onload = () => ok(); s.onerror = () => { loading = null; fail(new Error('students-data.js')); };
       document.head.append(s);
     });

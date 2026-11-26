@@ -373,7 +373,7 @@
   let sggLoading = null, lastMapKey = '';
   function loadSgg() {
     if (window.SGG_MAP) return Promise.resolve();
-    if (!sggLoading) sggLoading = new Promise((ok, fail) => { const el = document.createElement('script'); el.src = 'assets/sgg-map.js'; el.onload = ok; el.onerror = () => { sggLoading = null; fail(); }; document.head.append(el); });
+    if (!sggLoading) sggLoading = new Promise((ok, fail) => { const el = document.createElement('script'); el.src = 'assets/sgg-map.js?v=1126-6'; el.onload = ok; el.onerror = () => { sggLoading = null; fail(); }; document.head.append(el); });
     return sggLoading;
   }
   function renderMap() {

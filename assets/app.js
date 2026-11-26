@@ -51,7 +51,7 @@
   // ───────── 상태 ─────────
   const D = { meta: null, cube: null, schools: [], demo: [], sById: new Map(), assess: [], curri: new Map(), plans: null, status: {}, subjInfo: new Map(), plansReady: false };
   const S = {
-    view: 'map', sido: '', sgg: '', q: '', metric: 'schools', level: '고', grade: 0, ru: '', gender: '', htype: '',
+    view: 'map', sido: '', sgg: '', gj: '', q: '', metric: 'schools', level: '고', grade: 0, ru: '', gender: '', htype: '',
     a: { group: '', subject: '', cur: '', grade: '', sem: '', methods: [], feats: [], ratio: '', rubric: '', sort: 'evidence', mode: 'cards', limit: 30 },
     c: { subjects: ['미적분Ⅱ', '기하', '역학과 에너지', '화학 반응의 세계'], onlyAll: false, focus: '', preset: '' },
   };
@@ -98,6 +98,7 @@
     p.set('v', S.view);
     if (S.sido) p.set('sido', S.sido);
     if (S.sgg) p.set('sgg', S.sgg);
+    if (S.gj) p.set('gj', S.gj);
     if (S.q) p.set('q', S.q);
     const a = S.a;
     ['group', 'subject', 'cur', 'grade', 'sem', 'ratio', 'rubric'].forEach(k => a[k] && p.set(k, a[k]));
@@ -118,7 +119,7 @@
   function readHash() {
     const p = new URLSearchParams(location.hash.slice(1));
     if (!p.has('v')) return;
-    S.view = ['map', 'assess', 'curri', 'students', 'stats', 'about'].includes(p.get('v')) ? p.get('v') : 'map'; S.sido = p.get('sido') || ''; S.sgg = p.get('sgg') || ''; S.q = p.get('q') || '';
+    S.view = ['map', 'assess', 'curri', 'students', 'stats', 'about'].includes(p.get('v')) ? p.get('v') : 'map'; S.sido = p.get('sido') || ''; S.sgg = p.get('sgg') || ''; S.gj = p.get('gj') === 'split' ? 'split' : ''; S.q = p.get('q') || '';
     ['group', 'subject', 'cur', 'grade', 'sem', 'ratio', 'rubric'].forEach(k => S.a[k] = p.get(k) || '');
     S.a.sort = p.get('sort') || 'evidence';
     S.a.mode = ['cards', 'table', 'cloud'].includes(p.get('mode')) ? p.get('mode') : 'cards';
@@ -135,12 +136,25 @@
     S.grade = [1, 2, 3].includes(+p.get('g')) ? +p.get('g') : 0;
   }
 
+  // ───────── 광주·전남: 원자료는 「전남광주통합특별시」 하나 → 구(區) 5곳을 광주로 나눠 볼 수 있게 ─────────
+  const GJ_SIDO = '전남광주통합특별시', GJ_GU = new Set(['동구', '서구', '남구', '북구', '광산구']);
+  const gjPart = n => GJ_GU.has(n.split(' ')[0]) ? '광주' : '전남';
+  const partPred = (sido, sel) => sido === GJ_SIDO && (sel === '광주' || sel === '전남') ? (n => gjPart(n) === sel) : null;
+  function sggIn(sido, name, sel) { if (!sel) return true; if (name === sel || name.startsWith(sel + ' ')) return true; const f = partPred(sido, sel); return !!(f && f(name)); }
+  const gjSplit = () => S.gj === 'split';
+  function regionList() {   // 시·도 목록(나눠 보기면 광주·전남을 따로)
+    if (!gjSplit()) return D.meta.sido;
+    return D.meta.sido.flatMap(sd => sd.name !== GJ_SIDO ? [sd] : [{ id: 'gwangju', name: GJ_SIDO, short: '광주', part: '광주', ids: ['gwangju'] }, { id: 'south-jeolla', name: GJ_SIDO, short: '전남', part: '전남', ids: ['south-jeolla'] }]);
+  }
+  const natKey = k => k.sido === GJ_SIDO && gjSplit() ? gjPart(k.sgg) : k.sido;   // 시·도 묶음 이름
+  const regKey = sd => sd.part || sd.name;
+
   // ───────── 범위(지역·검색) ─────────
   const sumBy = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
   const demoOn = () => !!(D.meta && D.meta.assessSample);
   const assessSchools = () => demoOn() ? D.demo : D.schools;   // 수행평가·개설 과목이 붙는 학교 목록(수집 전에는 가상 학교)
   function inRegion(sc) {
-    return (!S.sido || sc.sido === S.sido) && (!S.sgg || sc.sigungu === S.sgg || sc.sigungu.startsWith(S.sgg + ' ') || (sc.sample && S.sgg.startsWith(sc.sigungu)));
+    return (!S.sido || sc.sido === S.sido) && (!S.sgg || sggIn(sc.sido, sc.sigungu, S.sgg) || (sc.sample && S.sgg.startsWith(sc.sigungu)));
   }
   function regionSchools(list) { return (list || D.schools).filter(x => inRegion(x) && schoolOK(x)); }
   function schoolsInScope(ignoreQ, list) {
@@ -150,8 +164,8 @@
   function regionKey() { return !S.sido ? '전국' : (S.sgg ? S.sido + '|' + S.sgg : S.sido); }
   function sumHist(sido, sgg) {   // 시 이름만 고른 경우(예: 수원시)는 그 아래 구를 모두 더한다
     const H = D.meta.hist || {}, exact = H[sido + '|' + sgg]; if (exact) return exact;
-    const pre = sido + '|' + sgg + ' ', out = [];
-    Object.keys(H).forEach(k => { if (k.startsWith(pre)) H[k].forEach((v, i) => out[i] = (out[i] || 0) + (v || 0)); });
+    const pre = sido + '|', out = [];
+    Object.keys(H).forEach(k => { if (k.startsWith(pre) && sggIn(sido, k.slice(pre.length), sgg)) H[k].forEach((v, i) => out[i] = (out[i] || 0) + (v || 0)); });
     return out;
   }
   function regionHist() { return S.sgg ? sumHist(S.sido, S.sgg) : ((D.meta.hist && D.meta.hist[regionKey()]) || []); }
@@ -206,7 +220,7 @@
   const gi = () => S.gender === 'm' ? 1 : S.gender === 'w' ? 2 : 0;
   const stuOf = x => S.grade ? x.g[S.grade - 1][gi()] : (S.gender === 'm' ? x.m : S.gender === 'w' ? x.f : x.students);   // 고등학교 한 곳의 학생 수(선택 조건)
   const clsOf = x => S.grade ? x.g[S.grade - 1][3] : x.classes;
-  const inCur = k => (!S.sido || k.sido === S.sido) && (!S.sgg || k.sgg === S.sgg || k.sgg.startsWith(S.sgg + ' '));
+  const inCur = k => (!S.sido || k.sido === S.sido) && (!S.sgg || sggIn(k.sido, k.sgg, S.sgg));
   function fixState() {   // 자료가 없는 조합은 자동으로 풀어 준다
     if (S.level !== '고') { S.htype = ''; if (S.level === '초' || S.gender) S.grade = 0; }
     if (!metricList().includes(S.metric)) S.metric = 'schools';
@@ -240,7 +254,7 @@
   const regNow = () => vals(cubeGroup(k => inCur(k) ? 1 : null).get(1));
   function subRegions() {   // 현재 범위의 하위 지역: 전국→시·도, 시·도→시·군·구, 시(구 있음)→구
     const short = {}; D.meta.sido.forEach(x => short[x.name] = x.short);
-    const g = cubeGroup(k => !inCur(k) || k.sido === '미상' ? null : (!S.sido ? short[k.sido] : k.sgg));
+    const g = cubeGroup(k => !inCur(k) || k.sido === '미상' ? null : (!S.sido ? (natKey(k) === k.sido ? short[k.sido] : natKey(k)) : k.sgg));
     return [...g].map(([label, o]) => ({ label, r: vals(o) })).filter(x => !isNaN(x.r.schools));
   }
   // 지도·통계 위에 붙는 조건 줄(지역 경로, 학교급, 학년, 지역 구분, 성별)
@@ -258,7 +272,9 @@
       seg('학교급', [['고', '고등학교'], ['중', '중학교'], ['초', '초등학교']], S.level, k => { S.level = k; }),
       seg('학년', [[0, '전체'], [1, '1학년'], [2, '2학년'], [3, '3학년']], S.grade, k => { S.grade = k; }, gradeOff),
       seg('지역 구분', [['', '전체'], ['동', '동'], ['읍면', '읍·면']], S.ru, k => { S.ru = k; }),
-      seg('성별', [['', '전체'], ['m', '남'], ['w', '여']], S.gender, k => { S.gender = k; if (k && S.level === '중') S.grade = 0; }));
+      seg('성별', [['', '전체'], ['m', '남'], ['w', '여']], S.gender, k => { S.gender = k; if (k && S.level === '중') S.grade = 0; }),
+      !S.sido ? seg('광주·전남', [['', '합쳐 보기'], ['split', '나눠 보기']], S.gj, k => { S.gj = k; })
+        : S.sido === GJ_SIDO ? seg('광주·전남', [['', '통합'], ['광주', '광주'], ['전남', '전남']], (S.sgg === '광주' || S.sgg === '전남') ? S.sgg : (S.sgg ? null : ''), k => { S.sgg = k; }) : null);
   }
   // 고교 유형(큰 분류 아래에 세부 분류를 접어 넣음). 누르면 그 유형만 보기
   function typeTree(schools) {
@@ -279,19 +295,17 @@
     const L = D.cube.years.length - 1, isHS = S.level === '고';
     const body = $('#panelBody'); body.textContent = '';
     if (!S.sido) {
-      const g = cubeGroup(k => k.sido);
+      const g = cubeGroup(natKey);
       body.append(h('div', { class: 'p-h' }, h('span', null, '시·도 선택'), h('span', null, lvName() + ' 수')),
-        h('div', { class: 'region-grid' }, D.meta.sido.filter(sd => g.get(sd.name) && g.get(sd.name).n[L]).map(sd => h('button', {
+        h('div', { class: 'region-grid' }, regionList().filter(sd => g.get(regKey(sd)) && g.get(regKey(sd)).n[L]).map(sd => h('button', {
           type: 'button', class: 'region-btn', 'data-sido': sd.id,
-          onclick: () => { S.sido = sd.name; S.sgg = ''; refresh(); },
+          onclick: () => { S.sido = sd.name; S.sgg = sd.part || ''; refresh(); },
           onmouseenter: () => hotRegion(sd, true), onmouseleave: () => hotRegion(sd, false)
-        }, h('b', null, sd.short), h('small', null, fmt(g.get(sd.name).n[L]) + '곳')))));
+        }, h('b', null, sd.short), h('small', null, fmt(g.get(regKey(sd)).n[L]) + '곳')))),
+        h('label', { class: 'gj-switch' }, h('input', { type: 'checkbox', checked: gjSplit() || null, onchange: e => { S.gj = e.target.checked ? 'split' : ''; refresh(); } }), ' 광주·전남 나눠 보기'));
     } else {
       const g = cubeGroup(k => k.sido === S.sido ? k.sgg : null), names = [...g.keys()].filter(k => g.get(k).n[L]).sort((a, b) => a.localeCompare(b, 'ko'));
-      body.append(h('div', { class: 'p-h' }, h('span', null, '시·군·구'), h('span', null, lvName() + ' 수')),
-        h('div', { class: 'sgg-list' },
-          h('button', { type: 'button', class: 'k-chip' + (S.sgg ? ' is-off' : ''), onclick: go(S.sido, '') }, '전체 ' + fmt(names.reduce((a, k) => a + g.get(k).n[L], 0))),
-          names.map(k => h('button', { type: 'button', class: 'k-chip' + ((S.sgg === k || (S.sgg && k.startsWith(S.sgg + ' '))) ? '' : ' is-off'), onclick: go(S.sido, k) }, k + ' ' + g.get(k).n[L]))));
+      body.append(h('div', { class: 'p-h' }, h('span', null, '시·군·구'), h('span', null, lvName() + ' 수')), sggPicker(names, k => g.get(k).n[L], go));
     }
     if (!isHS && !S.q) {
       body.append(h('p', { class: 'k-muted', style: 'font-size:13px;margin:14px 4px' }, `${lvName()}는 지역별 합계 자료만 있어 학교 목록은 나오지 않습니다. 학교별 자료는 고등학교에서 볼 수 있습니다.`));
@@ -310,6 +324,23 @@
       body.append(h('p', { class: 'k-muted', style: 'font-size:13px;margin:14px 4px' },
         '지도를 누르거나 시·도를 고르면 고등학교 목록이 나옵니다. 검색창에 학교 이름이나 시·군·구를 넣어도 됩니다.'));
     }
+  }
+  // 시·군·구 고르기: 이름과 학교 수를 나란히, 구가 있는 시는 한 묶음으로
+  function sggPicker(names, cnt, go) {
+    const it = (k, label, cls) => h('button', { type: 'button', class: cls + (S.sgg === k ? ' on' : (S.sgg && sggIn(S.sido, k, S.sgg) ? ' in' : '')), 'aria-pressed': S.sgg === k, onclick: go(S.sido, k) },
+      h('span', null, label), h('b', null, fmt(names.filter(n => sggIn(S.sido, n, k)).reduce((a, n) => a + cnt(n), 0))));
+    const group = (head, label, kids, strip) => h('div', { class: 'sgg-grp' }, it(head, label, 'sgg-gh'),
+      h('div', { class: 'sgg-sub' }, kids.map(k => it(k, strip ? k.slice(strip.length + 1) : k, 'sgg-it'))));
+    const out = [it('', '전체', 'sgg-all')];
+    if (S.sido === GJ_SIDO) {
+      out.push(group('광주', '광주', names.filter(n => gjPart(n) === '광주')), group('전남', '전남', names.filter(n => gjPart(n) === '전남')));
+    } else {
+      const city = {}; names.forEach(n => { const i = n.indexOf(' '); if (i > 0) (city[n.slice(0, i)] = city[n.slice(0, i)] || []).push(n); });
+      const seen = new Set();
+      names.forEach(n => { const c = n.indexOf(' ') > 0 ? n.slice(0, n.indexOf(' ')) : null;
+        if (c) { if (!seen.has(c)) { seen.add(c); out.push(group(c, c, city[c], c)); } } else out.push(it(n, n, 'sgg-it')); });
+    }
+    return h('div', { class: 'sgg-pick' }, out);
   }
   function hotRegion(sd, on) { (sd.ids || [sd.id]).forEach(id => { const p = document.querySelector(`.map-svg path[data-id="${id}"]`); if (p) p.style.stroke = on ? 'var(--ink)' : ''; }); }
 
@@ -384,8 +415,8 @@
   }
   const mapCaption = () => h('div', { class: 'map-cap' }, h('b', null, '색 기준 '), metricTitle());
   function nationalMapBox() {
-    const M = METRICS[S.metric], vals0 = {}, g = cubeGroup(k => k.sido);
-    D.meta.sido.forEach(sd => { const r = vals(g.get(sd.name)); (sd.ids || [sd.id]).forEach((id, i) => { vals0[id] = { sd, v: r[S.metric], n: r.schools, primary: i === 0 }; }); });
+    const M = METRICS[S.metric], vals0 = {}, g = cubeGroup(natKey);
+    regionList().forEach(sd => { const r = vals(g.get(regKey(sd))); (sd.ids || [sd.id]).forEach((id, i) => { vals0[id] = { sd, v: r[S.metric], n: r.schools, primary: i === 0 }; }); });
     const cl = classify(Object.values(vals0).filter(x => x.primary && x.sd.id !== 'unknown' && !isNaN(x.v)).map(x => x.v));
     const svg = s('svg', { class: 'map-svg', viewBox: window.KOREA_MAP.viewBox, role: 'img', 'aria-label': '시·도별 ' + metricTitle() + ' 지도' });
     const gPaths = s('g'), gPins = s('g');
@@ -394,10 +425,10 @@
       const info = vals0[id];
       const p = s('path', { d, 'data-id': id, tabindex: 0, role: 'button', 'aria-label': info ? info.sd.name : id });
       p.style.fill = info && !isNaN(info.v) ? rampColor(cl.cls(info.v)) : 'var(--surface-2)';
-      const pick = () => { if (!info) return; S.sido = info.sd.name; S.sgg = ''; refresh(); };
+      const pick = () => { if (!info) return; S.sido = info.sd.name; S.sgg = info.sd.part || ''; refresh(); };
       p.addEventListener('click', pick);
       p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
-      p.addEventListener('mousemove', e => tip(e, info ? `${info.sd.name}\n${M.label}: ${isNaN(info.v) ? '해당 없음' : fmt(info.v) + M.unit}${S.metric === 'schools' ? '' : ` · ${isNaN(info.n) ? 0 : fmt(info.n)}곳`}\n누르면 확대` : id));
+      p.addEventListener('mousemove', e => tip(e, info ? `${info.sd.part || info.sd.name}\n${M.label}: ${isNaN(info.v) ? '해당 없음' : fmt(info.v) + M.unit}${S.metric === 'schools' ? '' : ` · ${isNaN(info.n) ? 0 : fmt(info.n)}곳`}\n누르면 확대` : id));
       p.addEventListener('mouseleave', () => tip(null));
       gPaths.append(p);
     });
@@ -405,7 +436,7 @@
     requestAnimationFrame(() => {
       gPaths.querySelectorAll('path').forEach(p => {
         const id = p.dataset.id, info = vals0[id]; if (!info || !info.primary || isNaN(info.v)) return;
-        const b = p.getBBox(), nd = LABEL_NUDGE[id] || [0, 0];
+        const b = p.getBBox(), nd = (gjSplit() && { gwangju: [0, -2], 'south-jeolla': [14, 30] }[id]) || LABEL_NUDGE[id] || [0, 0];
         const t1 = s('text', { x: 7, y: 13 }, info.sd.short + ' '), t2 = s('tspan', { class: 'n' }, compact(info.v));
         t1.append(t2);
         const rect = s('rect', { height: 18, rx: 9 }), gg = s('g', { class: 'pin' }, rect, t1);
@@ -426,7 +457,7 @@
     lastMapKey = S.sido;
     const gP = s('g'), gL = s('g'); svg.append(gP, gL);
     const pickUnit = n => { S.sgg = S.sgg === n ? '' : n; refresh(); };
-    const isOn = n => S.sgg && (S.sgg === n || S.sgg.startsWith(n + ' '));
+    const isOn = n => S.sgg && (S.sgg === n || S.sgg.startsWith(n + ' ') || sggIn(S.sido, n, S.sgg));
     units.forEach(({ u, v, n }) => {
       const p = s('path', { d: u.d, 'data-n': u.n, class: isOn(u.n) ? 'is-on' : '', tabindex: 0, role: 'button', 'aria-label': u.n });
       p.style.fill = isNaN(v) ? 'var(--surface-2)' : rampColor(cl.cls(v));
@@ -752,7 +783,7 @@
   function renderStats() {
     const v = $('#view-stats'); v.textContent = ''; fixState();
     const name = S.sgg || S.sido || '전국', isHS = S.level === '고', r = regNow(), yrs = D.cube.years, cond = condText(), gtxt = cond ? cond + ' ' : '';
-    const subs = subRegions(), SUB = !S.sido ? '시·도별' : (S.sgg ? '구별' : '시·군·구별');
+    const subs = subRegions(), SUB = !S.sido ? '시·도별' : (S.sgg && !partPred(S.sido, S.sgg) ? '구별' : '시·군·구별');
     const top = (key, n) => subs.filter(x => !isNaN(x.r[key])).map(x => [x.label, x.r[key]]).sort((a, b) => b[1] - a[1]).slice(0, n || 18);
     const card = (title, ...kids) => h('div', { class: 'k-card k-memo' }, h('h2', null, title), kids);
     v.append(ctxBar(),

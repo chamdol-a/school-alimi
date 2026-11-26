@@ -51,13 +51,18 @@ $('fFrom').value = years[years.length-1]-9 >= years[0] ? years[years.length-1]-9
 
 const state = {chart:'line', hidden:new Set()};
 
+const GJ_SIDO='전남광주통합특별시', GJ_GU=new Set(['동구','서구','남구','북구','광산구']);
+const gjPart=n=>GJ_GU.has(n)?'광주':'전남';
+// 광주·전남을 나눠 볼 때 쓰는 '광주'·'전남' 묶음도 시군구 자리에서 고를 수 있게 한다
+const sggOK=(sido,sgg,sel)=> sgg===sel || (sido===GJ_SIDO && (sel==='광주'||sel==='전남') && gjPart(sgg)===sel);
 function updateSgg(){
   const sido = $('fSido').value, cur = $('fSgg').value;
   const list = new Set();
   RAW.forEach(r=>{ if(sido==='all'||r[2]===sido) list.add(sido==='all' ? r[2]+'|'+r[3] : r[3]); });
   const items = [...list].sort((a,b)=>a.localeCompare(b,'ko')).map(v=>[v, sido==='all'? v.replace('|',' ') : v]);
-  fill($('fSgg'), [['all', sido==='all'?'전체':'전체 시군구'],...items]);
-  $('fSgg').value = items.some(i=>i[0]===cur) ? cur : 'all';
+  const parts = sido===GJ_SIDO ? [['광주','광주(구 5곳)'],['전남','전남(시·군)']] : [];
+  fill($('fSgg'), [['all', sido==='all'?'전체':'전체 시군구'],...parts,...items]);
+  $('fSgg').value = [...parts,...items].some(i=>i[0]===cur) ? cur : 'all';
 }
 
 function normalize(changed){
@@ -82,7 +87,7 @@ function compute(){
     if(y<f.from||y>f.to) continue;
     if(f.lv!=='all'&&lv!==f.lv) continue;
     if(f.sido!=='all'&&sido!==f.sido) continue;
-    if(f.sgg!=='all'&&(f.sido==='all'? (sido+'|'+sgg)!==f.sgg : sgg!==f.sgg)) continue;
+    if(f.sgg!=='all'&&(f.sido==='all'? (sido+'|'+sgg)!==f.sgg : !sggOK(sido,sgg,f.sgg))) continue;
     if(f.ty!=='all'&&ty!==f.ty) continue;
     if(f.ru!=='all'&&ru!==f.ru) continue;
     if(lv==='초') gradeOK=false; else { const G=grades[y]||(grades[y]=[0,0,0]); G[0]+=r[9]; G[1]+=r[10]; G[2]+=r[11]; }
@@ -159,7 +164,7 @@ function drawFP(){
   chipsFrom('cSido','fSido',(v)=>SHORT[v]||v,opts=>{const m=new Map(opts);return [['all','전국'],...SIDO_ORDER.filter(x=>m.has(x)).map(x=>[x,x]),...opts.filter(([v])=>v!=='all'&&!SIDO_ORDER.includes(v))];});
   const sido=$('fSido').value, sb=$('cSggBox');
   if(sido==='all'){ sb.hidden=true; }
-  else { sb.hidden=false; $('cSggCap').textContent=`${sido} · 시군구 ${$('fSgg').options.length-1}곳`; chipsFrom('cSgg','fSgg'); }
+  else { sb.hidden=false; $('cSggCap').textContent=`${sido} · 시군구 ${$('fSgg').options.length-1-(sido===GJ_SIDO?2:0)}곳`+(sido===GJ_SIDO?' · 광주·전남으로 나눠 볼 수도 있습니다':''); chipsFrom('cSgg','fSgg'); }
   chipsFrom('cType','fType'); chipsFrom('cRural','fRural'); chipsFrom('cGender','fGender');
   chipsFrom('cGroup','fGroup'); chipsFrom('cMetric','fMetric');
   const from=+$('fFrom').value, to=+$('fTo').value, yb=$('cYear');
@@ -218,7 +223,7 @@ function drawHS(f){
   const yr=f.to;
   const rows=HS.filter(r=>r[0]===yr
     && (f.sido==='all' || r[1]===f.sido)
-    && (f.sido==='all' ? (r[1]+'|'+r[2])===f.sgg : r[2]===f.sgg)
+    && (f.sido==='all' ? (r[1]+'|'+r[2])===f.sgg : sggOK(r[1],r[2],f.sgg))
     && (f.ty==='all' || r[5]===f.ty)
     && (f.ru==='all' || r[6]===f.ru));
   const place=f.sgg.replace('|',' ');

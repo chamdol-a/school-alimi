@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko" data-skin="base">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>학교알리미 탐색기</title>
+<meta name="description" content="학교알리미 공시 자료로 전국 초·중·고 학생 수와 고등학교별 수행평가 계획, 개설 과목을 지도에서 찾아보는 도구">
+<meta property="og:type" content="website">
+<meta property="og:title" content="학교알리미 탐색기">
+<meta property="og:description" content="전국 학생 수 변화와 고등학교별 수행평가 계획·개설 과목을 지도에서 찾아봅니다. 자료: 학교알리미 공시">
+<meta property="og:image" content="icons/icon-512.png">
+<meta name="author" content="김진석 (소명여고 교사, EBS 입시정보 대표강사, tedkim0103@naver.com)">
+<meta name="theme-color" content="#2c4f8a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="학교알리미 탐색기">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="assets/themes.css">
+<link rel="stylesheet" href="assets/app.css">
+<script>try{var s=localStorage.getItem('skin');if(s)document.documentElement.dataset.skin=s;}catch(e){}</script>
+</head>
+<body class="k-page">
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="5" width="26" height="22" rx="4" fill="var(--accent)"/><path d="M9 21V13l7-4 7 4v8" fill="none" stroke="var(--accent-ink)" stroke-width="2.4" stroke-linejoin="round"/><circle cx="16" cy="16.5" r="2.2" fill="var(--accent-ink)"/></svg>
+    <span class="k-display brand-name">학교알리미 탐색기</span>
+    <span class="sample-badge" id="sampleBadge" hidden>이 메뉴는 예시 데이터</span>
+  </div>
+  <nav class="k-tabs main-tabs" role="tablist" aria-label="보기">
+    <button class="k-tab" role="tab" data-view="map" id="tab-map">지도</button>
+    <button class="k-tab" role="tab" data-view="students" id="tab-students">학생 수</button>
+    <button class="k-tab" role="tab" data-view="stats" id="tab-stats">통계</button>
+    <button class="k-tab" role="tab" data-view="curri" id="tab-curri">개설 과목</button>
+    <button class="k-tab" role="tab" data-view="assess" id="tab-assess">수행평가</button>
+    <button class="k-tab" role="tab" data-view="about" id="tab-about">자료 안내</button>
+  </nav>
+  <div class="top-actions">
+    <button class="k-btn" id="installBtn" type="button" hidden>⤓ 앱 설치</button>
+    <label class="skin-pick"><span class="sr">디자인</span>
+      <select class="k-select" id="skinSelect" aria-label="디자인 선택">
+        <option value="base">기본</option>
+        <option value="bluememo">블루</option>
+        <option value="spring">핑크</option>
+        <option value="slate">슬레이트</option>
+        <option value="night">다크</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- 좌측: 지도 앱 형식의 지역·학교 찾기 패널 -->
+  <aside class="panel" id="panel" aria-label="지역·학교 찾기">
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="search-input" id="q" type="search" placeholder="고등학교, 시·군·구 검색" autocomplete="off">
+      <button class="search-clear" id="qClear" type="button" aria-label="검색어 지우기" hidden>×</button>
+    </div>
+    <div class="crumbs" id="crumbs"></div>
+    <div class="panel-body" id="panelBody"></div>
+    <button class="panel-toggle" id="panelToggle" type="button" aria-expanded="true">목록 접기</button>
+  </aside>
+
+  <!-- 우측: 지도와 결과 -->
+  <main class="stage" id="stage">
+    <section class="view" id="view-map" hidden></section>
+    <section class="view" id="view-assess" hidden></section>
+    <section class="view" id="view-curri" hidden></section>
+    <section class="view" id="view-students" hidden>
+      <div class="view-head"><h1 class="k-display">학생 수 변화</h1>
+        <span class="k-muted"><span class="real-badge">실제 공시 자료</span> 학교알리미 공개용데이터 · 초·중·고 학생 수를 연도, 지역, 고교 유형, 성별로 비교</span></div>
+      <p class="empty k-card" id="st-status">학생 수 자료를 불러오는 중입니다…</p>
+      <div class="st" id="st-body" hidden>
+
+  
+
+  <section class="k-card st-panel fp" aria-label="조건 선택">
+    <div class="fr"><div class="fl"><b>1</b>학교급</div><div class="fc" id="st-cLevel"></div></div>
+    <div class="fr"><div class="fl"><b>2</b>지역</div><div class="fc"><div class="cw" id="st-cSido"></div><div class="sggbox" id="st-cSggBox" hidden><div class="cap" id="st-cSggCap"></div><div class="cw" id="st-cSgg"></div></div></div></div>
+    <div class="fr"><div class="fl"><b>3</b>세부</div><div class="fc sub3">
+      <div class="sg"><span class="sl">고교 유형</span><div class="cw seg2" id="st-cType"></div></div>
+      <div class="sg"><span class="sl">지역 구분</span><div class="cw seg2" id="st-cRural"></div></div>
+      <div class="sg"><span class="sl">성별</span><div class="cw seg2" id="st-cGender"></div></div>
+    </div></div>
+    <div class="fr"><div class="fl"><b>4</b>기간</div><div class="fc"><div class="yrs" id="st-cYear"></div><p class="hint fh">시작 연도 → 끝 연도 순서로 누르세요 · <span id="st-cYearNow"></span></p></div></div>
+    <div class="fr last"><div class="fl"><b>5</b>보기</div><div class="fc sub3">
+      <div class="sg"><span class="sl">비교 기준</span><div class="cw seg2" id="st-cGroup"></div></div>
+      <div class="sg"><span class="sl">보는 값</span><div class="cw seg2" id="st-cMetric"></div></div>
+      <div class="sg"><span class="sl">그래프</span><div class="cw seg2" role="group" aria-label="그래프 종류"><button type="button" class="ch" id="st-bLine" aria-pressed="true">선</button><button type="button" class="ch" id="st-bBar" aria-pressed="false">막대</button></div>
+        <label class="chk" for="st-fZero"><input type="checkbox" id="st-fZero" checked>0부터</label></div>
+    </div></div>
+    <p class="hint" id="st-hint"></p>
+    <div hidden>
+      <select id="st-fLevel"></select><select id="st-fSido"></select><select id="st-fSgg"></select><select id="st-fType"></select><select id="st-fRural"></select>
+      <select id="st-fGender"></select><select id="st-fFrom"></select><select id="st-fTo"></select><select id="st-fGroup"></select><select id="st-fMetric"></select>
+    </div>
+  </section>
+
+  <section class="tiles" id="st-tiles" aria-label="요약"></section>
+
+  <section class="k-card st-panel" aria-label="그래프">
+    <div class="ctitle"><h2 id="st-cTitle"></h2><span class="hint" id="st-cUnit"></span></div>
+    <ul class="st-legend" id="st-legend"></ul>
+    <div id="st-chartBox"></div>
+  </section>
+
+  <section class="k-card st-panel" aria-label="표">
+    <div class="ctitle"><h2 id="st-tTitle"></h2><span class="hint" id="st-tNote"></span></div>
+    <div class="tablewrap"><table id="st-tbl"></table></div>
+  </section>
+
+  <section class="k-card st-panel" aria-label="고등학교 목록">
+    <div class="ctitle"><h2 id="st-hTitle">고등학교별 학년 현황</h2><span class="hint" id="st-hNote"></span><button type="button" class="k-btn" id="st-hDown" hidden>엑셀로 내려받기</button></div>
+    <div id="st-hBody"></div>
+  </section>
+
+  <section class="note">
+    <p>자료: 학교알리미(schoolinfo.go.kr) 공개용데이터 성별 학생수, 2017~2026년 공시. 공시 제외 학교는 뺐습니다.</p>
+    <p>지역 구분은 학교 주소에 읍·면이 있으면 "읍면"으로 본 추정값이며, 실제 농어촌학교 지정과 다를 수 있습니다. 현재 주소 기준이라 폐교된 학교는 "미상"입니다.</p>
+    <p>광주와 전남은 자료에서 "전남광주통합특별시"로 합쳐져 있습니다. 둘을 나누려면 시군구로 구분하세요. 마이스터고는 별도 목록과 학교명으로 맞췄고, 종합고는 일반고에 들어 있습니다.</p>
+  </section>
+
+      </div>
+    </section>
+    <section class="view" id="view-stats" hidden></section>
+    <section class="view" id="view-about" hidden></section>
+  </main>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card k-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <button class="sheet-close" id="sheetClose" type="button" aria-label="닫기">×</button>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="assets/korea-map.js"></script>
+<script src="assets/xlsx-lite.js"></script>
+<script src="assets/students.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

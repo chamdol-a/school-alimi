@@ -1,9 +1,9 @@
 /* 학교알리미 탐색기 · 오프라인 캐시 (자료를 바꾸면 VERSION 숫자를 올릴 것) */
-const VERSION = 'v1126-5';
+const VERSION = 'v1126-6';
 const CORE = ['./', 'index.html', 'assets/app.css', 'assets/themes.css', 'assets/app.js', 'assets/students.js', 'assets/xlsx-lite.js', 'assets/korea-map.js',
   'assets/fonts/GmarketSansMedium.woff', 'assets/fonts/HakgyoansimBareondotumR.woff2', 'assets/fonts/HakgyoansimBareondotumB.woff2',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
+self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))   /* 브라우저 임시 저장본이 아닌 최신 파일을 받아 둔다 */).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });

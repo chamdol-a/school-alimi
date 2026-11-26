@@ -812,7 +812,7 @@
         h('ul', null,
           h('li', null, '공시에서 제외된 학교는 빠져 있습니다. 지역 합계 추이에는 그사이 문을 닫은 학교의 학생 수도 들어 있습니다.'),
           h('li', null, '광주와 전남은 원자료에서 「전남광주통합특별시」로 합쳐져 있어 지도에서도 한 지역으로 다룹니다.'),
-          h('li', null, '마이스터고는 별도 목록과 학교명으로 맞췄고, 종합고는 일반고에 들어 있습니다. 주소를 맞추지 못한 학교 5곳은 「미상」으로 둡니다.'),
+          h('li', null, '마이스터고는 별도 목록과 학교명으로 맞췄고, 종합고는 일반고에 들어 있습니다. 원자료에 주소가 없던 고등학교 5곳은 학교 이름과 연도별 자료를 대조해 해당 시·군·구에 넣었고, 지역을 알 수 없는 중학교 3곳·초등학교 11곳의 합계는 뺐습니다.'),
           h('li', null, '지역 구분(읍·면/동)은 학교 주소로 추정한 값이며 실제 농어촌학교 지정과 다를 수 있습니다.'),
           h('li', null, '학생 구성(남·여·공학)은 재학생 성별로 나눈 것이라 학교의 공식 구분과 다를 수 있습니다.'),
           h('li', null, '고교 세부 유형은 원자료에 없어 학교 이름과 설립으로 나눴습니다. 과학고·외고·국제고·예술고·체육고·영재학교는 이름으로, 자사고(사립)·자공고(공립)는 설립으로 구분합니다.'),
@@ -936,7 +936,7 @@
   async function boot() {
     readHash();
     const skin = $('#skinSelect');
-    skin.value = document.documentElement.dataset.skin || 'base';
+    skin.value = document.documentElement.dataset.skin || 'bluememo';
     skin.addEventListener('change', () => { document.documentElement.dataset.skin = skin.value; store.set('skin', skin.value); });
     document.querySelectorAll('.main-tabs .k-tab').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
     const q = $('#q'); q.value = S.q;
@@ -945,6 +945,7 @@
     $('#sheetClose').addEventListener('click', closeSheet);
     $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+    if (window.matchMedia('(max-width: 880px)').matches) { const p = $('#panel'), t = $('#panelToggle'); p.classList.add('is-folded'); t.textContent = '목록 펼치기'; t.setAttribute('aria-expanded', 'false'); }   // 휴대폰에서는 지도가 첫 화면에 보이도록 목록을 접어 둔다
     $('#panelToggle').addEventListener('click', e => { const p = $('#panel'); const f = p.classList.toggle('is-folded'); e.target.textContent = f ? '목록 펼치기' : '목록 접기'; e.target.setAttribute('aria-expanded', !f); });
     setupInstall();
     try {

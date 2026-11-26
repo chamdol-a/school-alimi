@@ -443,3 +443,28 @@ a { color: var(--accent); }
   body.pv .subj-link, body.pv .tt-name { text-decoration: none !important; }
 }
 @media screen { body.pv main.stage#stage { padding: 9mm !important; overflow: visible !important; } }
+
+/* v.1126-2 목록 접기·펼치기 단추를 눈에 띄게, 휴대폰에서 접힌 목록은 검색창과 단추만 */
+@media (max-width: 880px) {
+  .panel-toggle { background: var(--accent); color: var(--accent-ink, #fff); border-color: var(--accent); font-weight: 700; font-size: 13.5px; padding: 7px 20px; box-shadow: 0 3px 10px rgba(0,0,0,.22); }
+  .panel-toggle::before { content: "▲ "; font-size: 10px; }
+  .panel.is-folded .panel-toggle::before { content: "▼ "; }
+  .panel.is-folded { max-height: 124px; }
+}
+/* v.1126-2 휴대폰: 첫 화면에 지도가 보이도록 위쪽을 줄이고, 지도 → 조건 순으로 놓는다 */
+@media (max-width: 880px) {
+  .topbar { gap: 6px 10px; padding-top: 8px; padding-bottom: 0; }
+  .brand-mark { width: 22px; height: 22px; } .brand-name { font-size: 16px; }
+  .top-actions { gap: 6px; } .top-actions .k-btn, .top-actions .k-select { padding: 5px 9px; font-size: 12.5px; min-height: 0; height: 32px; }
+  .main-tabs .k-tab { padding: 8px 10px; font-size: 14px; }
+  .panel.is-folded { max-height: 64px; border-bottom: 0; box-shadow: none; }
+  .panel.is-folded .search { margin: 8px 132px 8px 12px; height: 40px; }
+  .panel.is-folded .crumbs, .panel.is-folded .panel-body { display: none; }
+  .panel.is-folded .panel-toggle { left: auto; right: 12px; bottom: auto; top: 11px; transform: none; padding: 7px 12px; font-size: 12.5px; }
+  .stage { padding-top: 10px; }
+  body:not(.pv) #view-map:not([hidden]) { display: flex; flex-direction: column; }
+  body:not(.pv) #view-map > .view-head { order: 0; margin-bottom: 6px; } body:not(.pv) #view-map > .view-head .k-muted { display: none; }
+  body:not(.pv) #view-map > .map-wrap { order: 1; } body:not(.pv) #view-map > .ctx { order: 2; margin-top: 14px; }
+  body:not(.pv) #view-map > .print-foot { order: 3; }
+  #view-map .map-svg { max-height: 58vh; }
+}
